@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════════════════════╗
-# ║  .gitignore – MIT 565 Azure Terraform Lab                          ║
-# ║  Prevents secrets and large binaries from being pushed to GitHub   ║
+# ║  .gitignore – MIT 565 Azure Terraform Lab                            ║
+# ║  Prevents secrets and large binaries from being pushed to GitHub     ║
 # ╚══════════════════════════════════════════════════════════════════════╝
 
 # Terraform state files (contain ALL secrets in plaintext:
