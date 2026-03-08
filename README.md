@@ -166,10 +166,10 @@ Azure Terraform Lab/
     +========================+                     +========================+
     |   Hub VNet 10.0.0.0/16 |                     |  Hub VNet 10.1.0.0/16  |
     |   +------------------+ |    VPN Tunnel       |  +------------------+  |
-    |   | GatewaySubnet    |=|======(BGP)===========|==| GatewaySubnet    |  |
+    |   | GatewaySubnet    |=|======(BGP)==========|==| GatewaySubnet    |  |
     |   | 10.0.1.0/27      | |    ASN 65010        |  | 10.1.1.0/27      |  |
-    |   +------------------+ |         ↕            |  +------------------+  |
-    |   | BastionSubnet    | |    ASN 65020         |                        |
+    |   +------------------+ |         ↕           |  +------------------+  |
+    |   | BastionSubnet    | |    ASN 65020        |                        |
     |   | 10.0.2.0/27      | |                     +===========+============+
     |   +------------------+ |                                 |
     +=========+=============++                          VNet Peering
@@ -187,10 +187,10 @@ Azure Terraform Lab/
     |  | 10.10.1.0/24       | |                    |  | 10.20.2.0/24       | |
     |  |   [b1-fin-pc1]     | |                    |  |   [b2-hr-pc1]      | |
     |  +--------------------+ |                    |  +--------------------+ |
-    |  | snet-it  (VLAN 30) | |                    |  [NAT Gateway]         |
-    |  | 10.10.2.0/24       | |                    |  HR --X-- Finance      |
-    |  |   [dns-server]     | |                    |  (null route blackhole)|
-    |  |   [web-server]     | |                    +========================+
+    |  | snet-it  (VLAN 30) | |                    |  [NAT Gateway]          |
+    |  | 10.10.2.0/24       | |                    |  HR --X-- Finance       |
+    |  |   [dns-server]     | |                    |  (null route blackhole) |
+    |  |   [web-server]     | |                    +=========================+
     |  +--------------------+ |
     |  [NAT Gateway]          |
     |  HR --X-- Finance       |
@@ -705,7 +705,7 @@ REM RDP to Finance:
 C:\> mstsc /v:10.10.1.x                → BLOCKED (null route + NSG deny)
 
 REM RDP to IT:
-C:\> mstsc /v:10.10.2.10               → BLOCKED (HR NSG has no allow for RDP to IT)
+C:\> mstsc /v:10.10.2.10               → ALLOWED (IT NSG allows all VNet inbound — admin access)
 ```
 
 **From IT workstation (if you RDP to it from another IT machine or use Bastion):**
@@ -730,17 +730,21 @@ C:\> mstsc /v:10.10.1.x                → ALLOWED (can RDP to Finance)
 
 > **Note:** This exercise involves temporarily modifying Azure resources in the portal. Only the instructor should perform the modifications; students observe.
 
-**Scenario: What happens if we remove ONLY the null route?**
+**Scenario A: What happens if we remove ONLY the null route?**
 1. In Azure Portal → Route Tables → `rt-hr-branch1-hq` → Routes → Delete `blackhole-to-finance`
-2. From b1-hr-pc1: `ping 10.10.1.x` — still blocked! (NSG deny rule catches it)
-3. Re-run `terraform apply` to restore the null route
+2. From b1-hr-pc1: `ping 10.10.1.x` — **now works!** (Routing layer removed; NSG only blocks RDP, not ICMP)
+3. From b1-hr-pc1: `mstsc /v:10.10.1.x` — **still blocked!** (Finance NSG `Deny-RDP-From-HR` at priority 200 catches it)
+4. Re-run `terraform apply` to restore the null route
 
-**Scenario: What happens if we remove ONLY the NSG deny rule?**
-1. In Azure Portal → NSGs → `nsg-hr-branch1-hq` → Inbound rules → Delete `Deny-RDP-From-Finance`
-2. From b1-hr-pc1: `mstsc /v:10.10.1.x` — still blocked! (Null route drops all traffic)
-3. Re-run `terraform apply` to restore the NSG rule
+> **Key insight:** The null route was blocking *everything* (like `ip route Null0`). The NSG is more surgical — it only blocks specific protocols like RDP. Removing one layer gives partial access, not full access. This is exactly like Cisco: a null route drops all traffic, while an ACL can selectively permit or deny.
 
-**Key takeaway:** Neither layer alone is sufficient for complete isolation, but together they provide **defense in depth**. An attacker or misconfiguration would need to bypass BOTH the routing layer AND the ACL layer to gain access.
+**Scenario B: What happens if we remove ONLY the NSG deny rule?**
+1. In Azure Portal → NSGs → `nsg-finance-branch1-hq` → Inbound rules → Delete `Deny-RDP-From-HR`
+2. From b1-hr-pc1: `ping 10.10.1.x` — **still blocked!** (Null route drops all traffic before NSG is even checked)
+3. From b1-hr-pc1: `mstsc /v:10.10.1.x` — **still blocked!** (Null route drops all traffic)
+4. Re-run `terraform apply` to restore the NSG rule
+
+**Key takeaway:** The null route operates at **Layer 3** (routing) and blocks everything. The NSG operates at **Layer 4** (ACL) and blocks selectively. Together they provide **defense in depth** — removing one layer still leaves protection, but each layer protects differently. This mirrors real-world network security where you combine routing controls with access control lists.
 
 ---
 

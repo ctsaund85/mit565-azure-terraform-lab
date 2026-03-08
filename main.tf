@@ -6,20 +6,20 @@
 # every core concept from MIT 565, mapped to Azure equivalents:
 #
 # ┌─────────────────────────┬──────────────────────────────────────────────┐
-# │ MIT 565 Concept         │ Azure Implementation                        │
+# │ MIT 565 Concept         │ Azure Implementation                         │
 # ├─────────────────────────┼──────────────────────────────────────────────┤
-# │ VLANs                   │ Subnets (HR, Finance, IT per branch)        │
-# │ Trunk Links             │ VNet Peering (Hub↔Spoke)                    │
-# │ IP Addressing/CIDR      │ VNet address spaces, subnet prefixes        │
-# │ Default Gateway          │ Azure virtual router                        │
-# │ Static Routing           │ User-Defined Routes (UDRs)                  │
-# │ Dynamic Routing (BGP)   │ VPN Gateway with BGP enabled                │
-# │ ACLs (Standard/Extended)│ Network Security Groups (NSGs)              │
-# │ NAT                     │ NAT Gateway (outbound SNAT)                 │
-# │ DNS                     │ Azure Private DNS Zones + Windows DNS       │
-# │ ARP / MAC               │ VM NICs with virtual MACs                   │
-# │ WAN Links               │ VPN Gateway site-to-site connections        │
-# │ Bastion/Management      │ Azure Bastion (secure RDP without pub IPs)  │
+# │ VLANs                   │ Subnets (HR, Finance, IT per branch)         │
+# │ Trunk Links             │ VNet Peering (Hub↔Spoke)                     │
+# │ IP Addressing/CIDR      │ VNet address spaces, subnet prefixes         │
+# │ Default Gateway         │ Azure virtual router                         │
+# │ Static Routing          │ User-Defined Routes (UDRs)                   │
+# │ Dynamic Routing (BGP)   │ VPN Gateway with BGP enabled                 │
+# │ ACLs (Standard/Extended)│ Network Security Groups (NSGs)               │
+# │ NAT                     │ NAT Gateway (outbound SNAT)                  │
+# │ DNS                     │ Azure Private DNS Zones + Windows DNS        │
+# │ ARP / MAC               │ VM NICs with virtual MACs                    │
+# │ WAN Links               │ VPN Gateway site-to-site connections         │
+# │ Bastion/Management      │ Azure Bastion (secure RDP without pub IPs)   │
 # └─────────────────────────┴──────────────────────────────────────────────┘
 #
 # DEMO PHASES – Toggle in terraform.tfvars for incremental deployment:
@@ -38,24 +38,24 @@
 #   Branch 1 (HQ) – Central US          Branch 2 – East US 2
 #   ┌──────────────────────┐             ┌──────────────────────┐
 #   │  Hub VNet 10.0.0.0/16│             │ Hub VNet 10.1.0.0/16 │
-#   │  ├─ GatewaySubnet    │◄── VPN ───►│  ├─ GatewaySubnet    │
+#   │  ├─ GatewaySubnet    │◄── VPN ───► │  ├─ GatewaySubnet    │
 #   │  └─ BastionSubnet    │             │  └─ (no bastion)     │
 #   └─────────┬────────────┘             └─────────┬────────────┘
 #             │ Peering                            │ Peering
-#   ┌─────────┴────────────┐             ┌─────────┴────────────┐
+#   ┌─────────┴────────── ──┐            ┌─────────┴─────────────┐
 #   │Spoke VNet 10.10.0.0/16│            │Spoke VNet 10.20.0.0/16│
 #   │  ├─ HR    10.10.0.0/24│            │  ├─ HR    10.20.0.0/24│
 #   │  ├─ Fin   10.10.1.0/24│            │  ├─ Fin   10.20.1.0/24│
-#   │  └─ IT   10.10.2.0/24│             │  └─ IT   10.20.2.0/24│
-#   │     [NAT Gateway]     │             │     [NAT Gateway]     │
-#   │  HR ──X── Finance      │             │  HR ──X── Finance      │
-#   │  (null route blackhole)│            │  (null route blackhole)│
-#   └──────────────────────┘             └──────────────────────┘
+#   │  └─ IT   10.10.2.0/24 │            │  └─ IT   10.20.2.0/24 │
+#   │     [NAT Gateway]     │            │     [NAT Gateway]     │
+#   │  HR ──X── Finance     │            │  HR ──X── Finance     │
+#   │(null route blackhole) │            │(null route blackhole) │
+#   └───────────────────── ─┘            └───────────────────────┘
 #
 ###############################################################################
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  RESOURCE GROUPS – One per branch (like a physical site)               ║
+# ║  RESOURCE GROUPS – One per branch (like a physical site)                  ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 resource "azurerm_resource_group" "branch1" {
@@ -71,9 +71,9 @@ resource "azurerm_resource_group" "branch2" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 1: CORE NETWORKING                                              ║
-# ║  Branch 1 (HQ) – Hub-Spoke VNet with Bastion                          ║
-# ║  Demonstrates: VLANs (subnets), trunk links (peering), CIDR           ║
+# ║  PHASE 1: CORE NETWORKING                                                 ║
+# ║  Branch 1 (HQ) – Hub-Spoke VNet with Bastion                              ║
+# ║  Demonstrates: VLANs (subnets), trunk links (peering), CIDR               ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "network_branch1" {
@@ -102,8 +102,8 @@ module "network_branch1" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 1: CORE NETWORKING                                              ║
-# ║  Branch 2 – Hub-Spoke VNet with VPN Gateway (connects to HQ)          ║
+# ║  PHASE 1: CORE NETWORKING                                                 ║
+# ║  Branch 2 – Hub-Spoke VNet with VPN Gateway (connects to HQ)              ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "network_branch2" {
@@ -132,10 +132,10 @@ module "network_branch2" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 7: VPN GATEWAY CONNECTION – Branch-to-Branch WAN Link           ║
-# ║  Demonstrates: Site-to-site VPN, BGP dynamic routing                   ║
-# ║  Like connecting two branch offices over an MPLS/Internet WAN link     ║
-# ║  Toggle: var.deploy_vpn in terraform.tfvars                            ║
+# ║  PHASE 7: VPN GATEWAY CONNECTION – Branch-to-Branch WAN Link              ║
+# ║  Demonstrates: Site-to-site VPN, BGP dynamic routing                      ║
+# ║  Like connecting two branch offices over an MPLS/Internet WAN link        ║
+# ║  Toggle: var.deploy_vpn in terraform.tfvars                               ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 resource "azurerm_virtual_network_gateway_connection" "branch1_to_branch2" {
@@ -165,9 +165,9 @@ resource "azurerm_virtual_network_gateway_connection" "branch2_to_branch1" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 3: NSGs – Network Security Groups (ACLs)                        ║
-# ║  Applied per-department per-branch                                     ║
-# ║  Toggle: var.deploy_nsgs in terraform.tfvars                           ║
+# ║  PHASE 3: NSGs – Network Security Groups (ACLs)                           ║
+# ║  Applied per-department per-branch                                        ║
+# ║  Toggle: var.deploy_nsgs in terraform.tfvars                              ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "nsg_branch1" {
@@ -207,9 +207,9 @@ module "nsg_branch2" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 4: ROUTE TABLES – User-Defined Routes (Static Routing)          ║
-# ║  Demonstrates: Routing tables, static routes, UDR concepts            ║
-# ║  Toggle: var.deploy_route_tables in terraform.tfvars                   ║
+# ║  PHASE 4: ROUTE TABLES – User-Defined Routes (Static Routing)             ║
+# ║  Demonstrates: Routing tables, static routes, UDR concepts                ║
+# ║  Toggle: var.deploy_route_tables in terraform.tfvars                      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "routes_branch1" {
@@ -247,9 +247,9 @@ module "routes_branch2" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 5: DNS – Azure Private DNS Zone                                 ║
-# ║  Demonstrates: A records, name resolution, DNS zones, nslookup         ║
-# ║  Toggle: var.deploy_dns in terraform.tfvars                            ║
+# ║  PHASE 5: DNS – Azure Private DNS Zone                                    ║
+# ║  Demonstrates: A records, name resolution, DNS zones, nslookup            ║
+# ║  Toggle: var.deploy_dns in terraform.tfvars                               ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "dns" {
@@ -280,9 +280,9 @@ module "dns" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 5: WINDOWS SERVER – DNS Server at HQ (Branch 1, IT Subnet)     ║
-# ║  Static IP 10.10.2.10 – demonstrates DNS server role                  ║
-# ║  Toggle: var.deploy_dns in terraform.tfvars                            ║
+# ║  PHASE 5: WINDOWS SERVER – DNS Server at HQ (Branch 1, IT Subnet)         ║
+# ║  Static IP 10.10.2.10 – demonstrates DNS server role                      ║
+# ║  Toggle: var.deploy_dns in terraform.tfvars                               ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "dns_server" {
@@ -305,9 +305,9 @@ module "dns_server" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 6: WINDOWS CLIENTS – Workstations in department subnets         ║
-# ║  Demonstrates: DHCP (dynamic IP), DNS client config, ARP behavior     ║
-# ║  Toggle: var.deploy_clients in terraform.tfvars                        ║
+# ║  PHASE 6: WINDOWS CLIENTS – Workstations in department subnets            ║
+# ║  Demonstrates: DHCP (dynamic IP), DNS client config, ARP behavior         ║
+# ║  Toggle: var.deploy_clients in terraform.tfvars                           ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # Branch 1 – HR Department workstation
@@ -365,9 +365,9 @@ module "client_branch2_hr" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 8: STORAGE + WEB SERVER                                         ║
-# ║  Hosts web content for IIS deployment                                  ║
-# ║  Toggle: var.deploy_web_server in terraform.tfvars                     ║
+# ║  PHASE 8: STORAGE + WEB SERVER                                            ║
+# ║  Hosts web content for IIS deployment                                     ║
+# ║  Toggle: var.deploy_web_server in terraform.tfvars                        ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 resource "random_string" "storage_suffix" {
@@ -855,16 +855,16 @@ HTML
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  WEB SERVER – IIS at HQ (Branch 1, IT Subnet)                         ║
-# ║  Static IP 10.10.2.20 – demonstrates HTTP/web services over TCP/IP    ║
-# ║  Hosts a documentation website for the MIT 565 Azure Lab project      ║
-# ║                                                                        ║
-# ║  Concepts demonstrated:                                                ║
-# ║    - Application Layer (HTTP/HTTPS) in the TCP/IP stack               ║
-# ║    - DNS A record resolution → web server IP                          ║
-# ║    - NSG rules allowing/blocking HTTP traffic (port 80)               ║
-# ║    - Routing from client subnets to server subnet                     ║
-# ║    - End-to-end: DNS lookup → ARP → routing → TCP → HTTP response    ║
+# ║  WEB SERVER – IIS at HQ (Branch 1, IT Subnet)                             ║
+# ║  Static IP 10.10.2.20 – demonstrates HTTP/web services over TCP/IP        ║
+# ║  Hosts a documentation website for the MIT 565 Azure Lab project          ║
+# ║                                                                           ║
+# ║  Concepts demonstrated:                                                   ║
+# ║    - Application Layer (HTTP/HTTPS) in the TCP/IP stack                   ║
+# ║    - DNS A record resolution → web server IP                              ║
+# ║    - NSG rules allowing/blocking HTTP traffic (port 80)                   ║
+# ║    - Routing from client subnets to server subnet                         ║ 
+# ║    - End-to-end: DNS lookup → ARP → routing → TCP → HTTP response         ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 module "web_server" {
@@ -888,17 +888,17 @@ module "web_server" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  PHASE 9: CHAOS STUDIO – Resilience & Fault Injection Testing          ║
-# ║  Demonstrates: Chaos engineering, failure testing, incident response   ║
-# ║  Cisco equivalent: Pulling cables, shutting interfaces, ACL mistakes   ║
-# ║                                                                        ║
-# ║  Experiments:                                                          ║
-# ║    1. DNS Outage – shut down DNS server → name resolution fails        ║
-# ║    2. Web Server Outage – shut down IIS → website unreachable          ║
-# ║    3. Network Partition – deny-all NSG on HR → subnet isolated         ║
-# ║                                                                        ║
-# ║  Students start experiments from Azure Portal → Chaos Studio           ║
-# ║  Toggle: var.deploy_chaos in terraform.tfvars                          ║
+# ║  PHASE 9: CHAOS STUDIO – Resilience & Fault Injection Testing             ║
+# ║  Demonstrates: Chaos engineering, failure testing, incident response      ║
+# ║  Cisco equivalent: Pulling cables, shutting interfaces, ACL mistakes      ║
+# ║                                                                           ║
+# ║  Experiments:                                                             ║
+# ║    1. DNS Outage – shut down DNS server → name resolution fails           ║
+# ║    2. Web Server Outage – shut down IIS → website unreachable             ║
+# ║    3. Network Partition – deny-all NSG on HR → subnet isolated            ║
+# ║                                                                           ║
+# ║  Students start experiments from Azure Portal → Chaos Studio              ║
+# ║  Toggle: var.deploy_chaos in terraform.tfvars                             ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # ── Chaos Targets: Enable Chaos Studio on VMs and NSGs ─────────────────────
@@ -1088,9 +1088,9 @@ resource "azurerm_role_assignment" "chaos_nsg_contributor" {
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  CHAOS STUDIO – Monitoring Dashboard & Alerts                          ║
-# ║  Azure Portal dashboard with real-time VM metrics + metric alerts      ║
-# ║  Students watch metrics change in real-time during chaos experiments   ║
+# ║  CHAOS STUDIO – Monitoring Dashboard & Alerts                             ║
+# ║  Azure Portal dashboard with real-time VM metrics + metric alerts         ║
+# ║  Students watch metrics change in real-time during chaos experiments      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # ── Log Analytics Workspace (enables VM metric collection) ─────────────────

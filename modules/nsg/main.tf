@@ -53,20 +53,9 @@ resource "azurerm_network_security_group" "hr" {
     destination_address_prefix = "*"
   }
 
-  # Allow inbound from Finance (inter-department communication)
-  security_rule {
-    name                       = "Allow-From-Finance"
-    priority                   = 120
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = var.finance_subnet_prefix
-    destination_address_prefix = "*"
-  }
-
   # Deny RDP from Finance – like: deny tcp host Finance any eq 3389
+  # Finance can still reach HR via implicit AllowVnetInBound (ping, HTTP, etc.)
+  # but cannot remote desktop — mirrors Cisco "deny tcp Finance HR eq 3389"
   security_rule {
     name                       = "Deny-RDP-From-Finance"
     priority                   = 200
