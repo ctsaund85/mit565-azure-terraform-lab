@@ -1,0 +1,64 @@
+# terraform.tfvars.example
+# MIT 565 Lab – Copy this file to terraform.tfvars and set your values
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Edit terraform.tfvars with your own password and shared key
+#   terraform init
+#   terraform apply
+
+admin_password = "CHANGE-ME-Strong-Password-123!"
+vpn_shared_key = "CHANGE-ME-VPN-SharedKey-123!"
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  MIT 565 - DEMO PHASE CONTROL                                        ║
+# ║                                                                      ║
+# ║  Toggle features on/off for incremental class deployment.            ║
+# ║  After changing a value, run: terraform apply                        ║
+# ║                                                                      ║
+# ║  Phase 1: Core Networking (always on)                                ║
+# ║           VNets, Subnets, Peering, Bastion                           ║
+# ║  Phase 2: NAT Gateway    → outbound internet via SNAT                ║
+# ║  Phase 3: NSGs           → Access Control Lists (ACLs)               ║
+# ║  Phase 4: Route Tables   → static routing / UDRs                     ║
+# ║  Phase 5: DNS            → Azure DNS zone + Windows DNS server       ║
+# ║  Phase 6: Client VMs     → department workstations                   ║
+# ║  Phase 7: VPN Gateway    → WAN links + BGP dynamic routing           ║
+# ║  Phase 8: Web Server     → IIS + documentation website               ║
+# ║  Phase 9: Chaos Studio   → resilience testing / fault injection      ║
+# ║                                                                      ║
+# ║  For full lab:  set all to true                                      ║
+# ║  For demo mode: start all false, enable one at a time                ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+nat_gateway_enabled = false # Phase 2
+deploy_nsgs         = false # Phase 3
+deploy_route_tables = false # Phase 4
+deploy_dns          = false # Phase 5
+deploy_clients      = false # Phase 6
+deploy_vpn          = false # Phase 7
+deploy_web_server   = false # Phase 8
+deploy_chaos        = false # Phase 9
+
+# Optionally override these defaults:
+# region_1       = "centralus"
+# region_2       = "eastus2"
+# vm_size        = "Standard_B2ms"
+# admin_username = "adminuser"
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  COST & TAGGING CONTROLS                                             ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+# Spot VMs save ~60-90% but can be evicted by Azure when capacity is needed.
+# Great for lab/dev work. Set to true to use Spot pricing on all VMs.
+use_spot = false
+
+# Tags applied to every resource for cost tracking and organization.
+tags = {
+  project     = "MIT-565-Azure-Lab"
+  course      = "MIT 565 - Internetworking"
+  university  = "Elmhurst University"
+  environment = "lab"
+  deployed_by = "terraform"
+}
