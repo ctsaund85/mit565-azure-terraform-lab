@@ -1,0 +1,36 @@
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  .gitignore – MIT 565 Azure Terraform Lab                          ║
+# ║  Prevents secrets and large binaries from being pushed to GitHub   ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+# Terraform state files (contain ALL secrets in plaintext:
+# passwords, keys, connection strings, subscription/tenant IDs)
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Variable values (contain admin password and VPN shared key)
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Terraform providers/plugins (large binaries, ~hundreds of MB)
+.terraform/
+
+# Plan files (can contain secrets from state)
+*.tfplan
+out.plan
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override files (local dev overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# macOS metadata
+.DS_Store
