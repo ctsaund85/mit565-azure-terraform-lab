@@ -603,20 +603,25 @@ C:\> ipconfig /all
 
 **From b1-hr-pc1:**
 ```cmd
-C:\> arp -a
-C:\> ping 10.10.1.x          (Finance workstation IP)
-C:\> arp -a
+C:\> arp -d *                 (clear ARP cache)
+C:\> arp -a                   (observe: table is empty or minimal)
+C:\> ping 10.10.2.10          (DNS server in IT subnet — should succeed)
+C:\> arp -a                   (observe: gateway MAC now appears)
+C:\> ping 10.10.1.x           (Finance workstation IP — null-routed!)
+C:\> arp -a                   (observe: still only gateway MAC, no Finance entry)
 ```
 
 **What to observe:**
-- Before ping: ARP table may be empty or have only gateway entry
-- After ping: New MAC entry appears for the Finance workstation (if reachable — may be blocked by null route!)
-- Gateway MAC: The default gateway (10.10.0.1) always has an entry
+- Before ping: ARP table is empty or only has link-local entries
+- After ping to IT (10.10.2.10): The default gateway (10.10.0.1) MAC entry appears — this is because Finance and IT are on **different subnets**, so the packet is forwarded through the gateway. ARP only resolves **local segment** (Layer 2) neighbors
+- After ping to Finance (10.10.1.x): Request times out (null route drops traffic), but the gateway ARP entry is **still present** — the VM sent the packet to the gateway, which then dropped it at the Azure SDN layer
+- You will **never** see 10.10.1.x or 10.10.2.10 in the ARP table because they are on different subnets — only the next-hop (gateway) MAC is resolved
 
 **Discussion questions:**
 1. Where does the MAC address come from in a virtual environment?
-2. Why does the ARP entry for 10.10.1.x not appear when the null route is active?
-3. What happens if you `arp -d *` (clear ARP cache) and ping again?
+2. Why does the destination IP (10.10.2.10) never appear in the ARP table even when ping succeeds?
+3. Why does the gateway ARP entry still appear after a null-routed ping to Finance?
+4. How does this differ from ARP behavior on a flat (single-subnet) network?
 
 ---
 

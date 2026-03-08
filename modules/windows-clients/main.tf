@@ -65,7 +65,7 @@ resource "azurerm_virtual_machine_extension" "bginfo" {
   tags                       = var.tags
 }
 
-# Desktop shortcut – IP Chicken (verifies NAT Gateway public IP)
+# Desktop shortcut + enable ICMP (Windows Firewall blocks ping by default)
 resource "azurerm_virtual_machine_extension" "shortcuts" {
   name                 = "shortcuts-${var.vm_name}"
   virtual_machine_id   = azurerm_windows_virtual_machine.client.id
@@ -74,6 +74,6 @@ resource "azurerm_virtual_machine_extension" "shortcuts" {
   type_handler_version = "1.10"
 
   settings = jsonencode({
-    commandToExecute = "powershell -ExecutionPolicy Unrestricted -Command \"@('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\""
+    commandToExecute = "powershell -ExecutionPolicy Unrestricted -Command \"Set-NetFirewallRule -DisplayName 'File and Printer Sharing (Echo Request - ICMPv4-In)' -Enabled True; @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\""
   })
 }

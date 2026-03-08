@@ -66,7 +66,7 @@ resource "azurerm_virtual_machine_extension" "bginfo" {
   tags                       = var.tags
 }
 
-# Install DNS Server role via Custom Script Extension
+# Install DNS Server role via Custom Script Extension (also enables ICMP)
 resource "azurerm_virtual_machine_extension" "install_dns" {
   count                = var.install_dns ? 1 : 0
   name                 = "install-dns-${var.vm_name}"
@@ -76,11 +76,11 @@ resource "azurerm_virtual_machine_extension" "install_dns" {
   type_handler_version = "1.10"
 
   settings = jsonencode({
-    commandToExecute = "powershell -ExecutionPolicy Unrestricted -Command \"Install-WindowsFeature -Name DNS -IncludeManagementTools; Add-DnsServerPrimaryZone -Name 'mit565.local' -ZoneFile 'mit565.local.dns'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'dns-server' -IPv4Address '10.10.2.10'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'web-server' -IPv4Address '10.10.2.20'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'branch1-client' -IPv4Address '10.10.0.10'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'branch2-client' -IPv4Address '10.20.0.10'; Add-DnsServerForwarder -IPAddress 168.63.129.16; $ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('C:\\Users\\Public\\Desktop\\DNS Manager.lnk'); $s.TargetPath = 'dnsmgmt.msc'; $s.Save(); @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\""
+    commandToExecute = "powershell -ExecutionPolicy Unrestricted -Command \"Set-NetFirewallRule -DisplayName 'File and Printer Sharing (Echo Request - ICMPv4-In)' -Enabled True; Install-WindowsFeature -Name DNS -IncludeManagementTools; Add-DnsServerPrimaryZone -Name 'mit565.local' -ZoneFile 'mit565.local.dns'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'dns-server' -IPv4Address '10.10.2.10'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'web-server' -IPv4Address '10.10.2.20'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'branch1-client' -IPv4Address '10.10.0.10'; Add-DnsServerResourceRecordA -ZoneName 'mit565.local' -Name 'branch2-client' -IPv4Address '10.20.0.10'; Add-DnsServerForwarder -IPAddress 168.63.129.16; $ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('C:\\Users\\Public\\Desktop\\DNS Manager.lnk'); $s.TargetPath = 'dnsmgmt.msc'; $s.Save(); @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\""
   })
 }
 
-# Install IIS Web Server role and deploy website
+# Install IIS Web Server role and deploy website (also enables ICMP)
 resource "azurerm_virtual_machine_extension" "install_iis" {
   count                = var.install_iis ? 1 : 0
   name                 = "install-iis-${var.vm_name}"
@@ -91,7 +91,7 @@ resource "azurerm_virtual_machine_extension" "install_iis" {
 
   settings = jsonencode(merge(
     {
-      commandToExecute = var.iis_content_url != null ? "powershell -ExecutionPolicy Unrestricted -Command \"Install-WindowsFeature -Name Web-Server -IncludeManagementTools; Copy-Item -Path './index.html' -Destination 'C:\\inetpub\\wwwroot\\index.html' -Force; $ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('C:\\Users\\Public\\Desktop\\IIS Manager.lnk'); $s.TargetPath = 'C:\\Windows\\System32\\inetsrv\\InetMgr.exe'; $s.Save(); @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\"" : "powershell -ExecutionPolicy Unrestricted -Command \"Install-WindowsFeature -Name Web-Server -IncludeManagementTools; $ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('C:\\Users\\Public\\Desktop\\IIS Manager.lnk'); $s.TargetPath = 'C:\\Windows\\System32\\inetsrv\\InetMgr.exe'; $s.Save(); @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\""
+      commandToExecute = var.iis_content_url != null ? "powershell -ExecutionPolicy Unrestricted -Command \"Set-NetFirewallRule -DisplayName 'File and Printer Sharing (Echo Request - ICMPv4-In)' -Enabled True; Install-WindowsFeature -Name Web-Server -IncludeManagementTools; Copy-Item -Path './index.html' -Destination 'C:\\inetpub\\wwwroot\\index.html' -Force; $ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('C:\\Users\\Public\\Desktop\\IIS Manager.lnk'); $s.TargetPath = 'C:\\Windows\\System32\\inetsrv\\InetMgr.exe'; $s.Save(); @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\"" : "powershell -ExecutionPolicy Unrestricted -Command \"Set-NetFirewallRule -DisplayName 'File and Printer Sharing (Echo Request - ICMPv4-In)' -Enabled True; Install-WindowsFeature -Name Web-Server -IncludeManagementTools; $ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('C:\\Users\\Public\\Desktop\\IIS Manager.lnk'); $s.TargetPath = 'C:\\Windows\\System32\\inetsrv\\InetMgr.exe'; $s.Save(); @('[InternetShortcut]','URL=https://www.ipchicken.com') | Set-Content 'C:\\Users\\Public\\Desktop\\IP Chicken.url'\""
     },
     var.iis_content_url != null ? { fileUris = [var.iis_content_url] } : {}
   ))
