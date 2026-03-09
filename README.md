@@ -255,12 +255,6 @@ Azure Terraform Lab/
 - 2 VNet peerings (Hub↔Spoke per branch)
 - 1 Azure Bastion host (Branch 1, Standard SKU with tunneling)
 
-**Classroom talking points:**
-- Each subnet = a VLAN. Devices in 10.10.0.0/24 (HR) can't see 10.10.1.0/24 (Finance) by default — they need routing through the Azure virtual router (default gateway)
-- VNet peering = trunk link. It connects the hub (where gateways live) to the spoke (where departments live)
-- /24 = 254 usable hosts, /27 = 30 usable hosts (Gateway/Bastion subnets are small because they only host infrastructure)
-- Bastion = out-of-band management (like a console cable, but over HTTPS)
-
 **Deployment wait time:** ~5 minutes
 
 ---
@@ -277,12 +271,6 @@ Azure Terraform Lab/
 - 2 NAT Gateways (one per branch)
 - 2 Static public IPs
 - 6 Subnet-to-NAT associations (3 department subnets per branch)
-
-**Classroom talking points:**
-- NAT Gateway = `ip nat inside source list 1 interface Gi0/0 overload`
-- All VMs share one public IP for outbound internet (SNAT / PAT)
-- Students can verify by opening IP Chicken (desktop shortcut) from any VM — all VMs in the same branch show the same public IP
-- Inbound connections are NOT allowed (NAT Gateway is outbound-only, like a corporate NAT with no port forwarding)
 
 **Deployment wait time:** ~2 minutes
 
@@ -310,12 +298,6 @@ Azure Terraform Lab/
 | **Finance** | Allow RDP from IT | 110 | ✅ Allow | `permit tcp 10.x.2.0 0.0.0.255 any eq 3389` |
 | **Finance** | Deny RDP from HR | 200 | ❌ Deny | `deny tcp 10.x.0.0 0.0.0.255 any eq 3389` |
 
-**Classroom talking points:**
-- Lower priority number = higher priority (evaluated first), just like Cisco ACLs
-- Azure has an implicit deny-all at priority 65500 (like Cisco's implicit `deny ip any any` at end of ACL)
-- NSGs are stateful — if outbound is allowed, the return traffic is automatically permitted
-- IT department = admin VLAN with full access (standard enterprise pattern)
-
 **Deployment wait time:** ~1 minute
 
 ---
@@ -337,15 +319,6 @@ Azure Terraform Lab/
 | rt-it | *(no blocking routes)* | — | Allow all | *(no null routes — admin access)* |
 
 **All route tables:** `bgp_route_propagation_enabled = true` (allows VPN BGP learned routes)
-
-**Classroom talking points:**
-- Null route = packets sent to `Null0` are silently discarded. The routing layer drops the packet before it ever reaches the destination subnet
-- This creates **defense in depth** with NSGs — traffic is blocked at TWO independent layers:
-  - Layer 3 (routing): Null route drops HR→Finance packets
-  - Layer 4 (ACLs): NSG also denies HR→Finance RDP
-- Even if someone misconfigures an NSG, the null route still blocks. Even if the null route is removed, the NSG still blocks RDP
-- UDRs override Azure system routes (like setting a lower administrative distance)
-- BGP propagation lets VPN gateway learned routes (Branch 2 prefixes) reach the spoke subnets
 
 **Deployment wait time:** ~1 minute
 
@@ -372,12 +345,6 @@ Azure Terraform Lab/
 
 **Desktop shortcuts on dns-server:** DNS Manager, IP Chicken
 
-**Classroom talking points:**
-- Private DNS zone = a zone file that only resolves internally (no public exposure)
-- All VNets are linked to the zone — VMs across both branches can resolve names
-- The Windows DNS Server has the DNS role installed with management tools — open DNS Manager to see the zone and records
-- DNS forwarding is configured to Azure's wire server (168.63.129.16) for external names
-
 **Deployment wait time:** ~10 minutes (VM creation + DNS role installation)
 
 ---
@@ -399,12 +366,6 @@ Azure Terraform Lab/
 | b2-hr-pc1 | Branch 2 HR (10.20.0.0/24) | Dynamic | 10.10.2.10 |
 
 **Desktop shortcuts on all clients:** IP Chicken
-
-**Classroom talking points:**
-- Client VMs use dynamic IP allocation (Azure's built-in DHCP)
-- DNS is pointed to the lab's DNS server (10.10.2.10), not Azure's default
-- `ipconfig /all` shows IP, subnet mask, default gateway, and DNS server — the same fields as a physical NIC
-- `arp -a` shows the VM's ARP cache — virtual MACs work the same as physical MACs
 
 **Deployment wait time:** ~10 minutes (3 VMs in parallel)
 
@@ -429,13 +390,6 @@ Azure Terraform Lab/
 |---|---|---|
 | Branch 1 (HQ) | 65010 | vpngw-branch1-hq |
 | Branch 2 | 65020 | vpngw-branch2 |
-
-**Classroom talking points:**
-- VPN Gateway = a router connecting two sites over an encrypted tunnel
-- BGP automatically exchanges branch prefixes — no manual static routes needed for cross-branch
-- The shared key authenticates the tunnel (like IKE phase 1 authentication)
-- After deployment, `tracert 10.20.0.x` from Branch 1 shows the path goes through the VPN gateway
-- This is why `bgp_route_propagation_enabled = true` on route tables — without it, the spoke subnets wouldn't learn the cross-branch routes from BGP
 
 > **⚠️ Important:** VPN Gateways take **25-45 minutes** to deploy. Plan accordingly for class time. VPN Gateways also cost ~$0.04/hr each and run 24/7 — destroy promptly after class.
 
@@ -464,15 +418,6 @@ Azure Terraform Lab/
 - DNS configuration and lab exercises
 - Interactive lab exercise guides
 - TCP/IP stack walkthrough
-
-**Classroom talking points:**
-- Opening this page from a client VM exercises the ENTIRE TCP/IP stack:
-  1. **DNS:** Browser resolves `web-server.mit565.local` → 10.10.2.20
-  2. **ARP:** Client resolves the next-hop MAC address
-  3. **Routing:** Azure virtual router forwards the packet (checks route table + NSG)
-  4. **TCP:** 3-way handshake (SYN, SYN-ACK, ACK) on port 80
-  5. **HTTP:** GET request returns index.html
-- The website is self-documenting — it explains the very infrastructure that serves it
 
 **Deployment wait time:** ~10 minutes
 
@@ -538,14 +483,6 @@ An Azure Portal Dashboard (`MIT565-Chaos-Engineering-Dashboard`) is deployed wit
 3. Monitor from a client VM — test connectivity during the fault
 4. After 5 minutes, the fault auto-reverts (VM restarts, NSG rule removed)
 
-**Classroom talking points:**
-- Chaos engineering = intentionally breaking things to find weak points — Netflix pioneered this with Chaos Monkey
-- Cisco equivalent: what happens when you `shutdown` an interface or apply a `deny ip any any` ACL?
-- DNS outage teaches **dependency awareness** — name resolution is assumed to always work, but it's a single point of failure
-- The web server outage shows the difference between **network-layer** and **application-layer** failures
-- The network partition shows what happens when an ACL/firewall rule blocks all traffic — complete subnet isolation
-- After the experiment, discuss: **How would you make this resilient?** (Redundant DNS, load-balanced web servers, multiple NSG layers)
-
 **Deployment wait time:** ~2 minutes (no VMs created, just API resources)
 
 > **Cost note:** Chaos Studio has no standing cost. Experiments cost $0.10 per experiment-minute when running. A 5-minute experiment costs $0.50.
@@ -590,11 +527,6 @@ C:\> ipconfig /all
 - Default Gateway: 10.10.0.1 (Azure virtual router)
 - DNS Server: 10.10.2.10 (lab DNS server)
 
-**Discussion questions:**
-1. How many usable host addresses in a /24? In a /27?
-2. Why is the default gateway .1 and not .0?
-3. What Class A network (10.0.0.0/8) does this lab use? Why is this a private IP range (RFC 1918)?
-
 ---
 
 ### Lab 2: ARP & MAC Addresses
@@ -616,12 +548,6 @@ C:\> arp -a                   (observe: still only gateway MAC, no Finance entry
 - After ping to IT (10.10.2.10): The default gateway (10.10.0.1) MAC entry appears — this is because Finance and IT are on **different subnets**, so the packet is forwarded through the gateway. ARP only resolves **local segment** (Layer 2) neighbors
 - After ping to Finance (10.10.1.x): Request times out (null route drops traffic), but the gateway ARP entry is **still present** — the VM sent the packet to the gateway, which then dropped it at the Azure SDN layer
 - You will **never** see 10.10.1.x or 10.10.2.10 in the ARP table because they are on different subnets — only the next-hop (gateway) MAC is resolved
-
-**Discussion questions:**
-1. Where does the MAC address come from in a virtual environment?
-2. Why does the destination IP (10.10.2.10) never appear in the ARP table even when ping succeeds?
-3. Why does the gateway ARP entry still appear after a null-routed ping to Finance?
-4. How does this differ from ARP behavior on a flat (single-subnet) network?
 
 ---
 
@@ -647,11 +573,6 @@ C:\> Resolve-DnsName -Name web-server.mit565.local -Type A
 **On the DNS server itself (dns-server, 10.10.2.10):**
 - Open **DNS Manager** (desktop shortcut) → Expand Forward Lookup Zones → `mit565.local`
 - View the A records — compare to what nslookup returns
-
-**Discussion questions:**
-1. What is the TTL value? What does it mean?
-2. What happens if you `nslookup google.com`? Where does that request go? (Forwarder: 168.63.129.16)
-3. What's the difference between a forward lookup and a reverse lookup?
 
 ---
 
@@ -686,12 +607,6 @@ C:\> tracert 10.20.0.x
 REM Trace path from Branch 1 → Branch 2 via VPN gateway (BGP route)
 ```
 
-**Classroom talking points:**
-- The null route drops packets at the Azure SDN layer — the packet never reaches the destination
-- This is identical in concept to Cisco's `ip route 10.10.1.0 255.255.255.0 Null0`
-- Azure UDRs have a lower "administrative distance" than system routes — they override defaults
-- The IT subnet has NO null routes — admins can always reach every department
-
 ---
 
 ### Lab 5: NSG / ACL Testing
@@ -721,11 +636,6 @@ C:\> ping 10.10.1.x                    → ALLOWED
 C:\> mstsc /v:10.10.0.x                → ALLOWED (can RDP to HR)
 C:\> mstsc /v:10.10.1.x                → ALLOWED (can RDP to Finance)
 ```
-
-**Discussion questions:**
-1. What Azure NSG priority is the "implicit deny-all"? (65500)
-2. If Priority 100 allows and Priority 200 denies the same traffic, which wins? (100 — lower number = higher priority)
-3. How is this similar to Cisco's `access-list` evaluation order?
 
 ---
 
@@ -774,11 +684,6 @@ C:\> mstsc /v:10.10.1.x                → ALLOWED (can RDP to Finance)
 terraform output nat_gateway_public_ip
 ```
 
-**Discussion questions:**
-1. Why do all VMs in the same branch show the same public IP?
-2. What is SNAT vs DNAT? Which one does NAT Gateway provide? (SNAT only)
-3. Can someone on the internet initiate a connection INTO your VM? Why not?
-
 ---
 
 ### Lab 8: Cross-Branch VPN Connectivity
@@ -800,12 +705,6 @@ REM RDP to Branch 2 (proves VPN tunnel works):
 C:\> mstsc /v:10.20.0.x
 ```
 
-**Classroom talking points:**
-- The VPN tunnel encrypts traffic between branches (like IPsec over MPLS)
-- BGP automatically advertises Branch 1's prefixes (10.10.x.x) to Branch 2, and vice versa
-- `bgp_route_propagation_enabled = true` on route tables lets these BGP routes reach the spoke subnets
-- If you disable BGP propagation, the spokes lose connectivity to the remote branch — try it (then re-apply!)
-
 ---
 
 ### Lab 9: Web Server (HTTP over TCP)
@@ -825,11 +724,6 @@ http://web-server.mit565.local
 - Open **IIS Manager** (desktop shortcut) → Expand Sites → Default Web Site
 - View the physical path: `C:\inetpub\wwwroot\index.html`
 - View bindings: Port 80, HTTP
-
-**Discussion questions:**
-1. What TCP port does HTTP use? (80) HTTPS? (443)
-2. What happens during the TCP 3-way handshake before the HTTP request?
-3. Can you access this website from Branch 2? (Yes — proves routing + DNS + TCP/IP all work end-to-end)
 
 ---
 
@@ -964,14 +858,6 @@ REM Result: HTML response (website is back!)
 5. **Check the dashboard:** Web Server CPU % chart should show the dip to 0% and recovery. Check Azure Portal → Monitor → Alerts to see the `alert-web-server-down` metric alert that fired.
 
 > **Key lesson:** DNS resolved the name successfully even though the server was down. This demonstrates the difference between **network-layer** and **application-layer** failures. The path to the server worked, but the service wasn't running — exactly like a Cisco switch where the interface is up but the connected server has crashed.
-
-**Discussion questions:**
-1. Why did `nslookup` fail during the DNS outage but `ping 10.10.2.20` still worked? What does this teach about DNS as a dependency?
-2. During the web server outage, DNS still resolved `web-server.mit565.local` to 10.10.2.20. Why? What's the difference between name resolution succeeding and the service being available?
-3. During the network partition, HR was completely isolated. How is this similar to accidentally applying `deny ip any any` on a switch interface?
-4. What single points of failure exist in this lab? How would you add redundancy? (Hint: secondary DNS server, load-balanced web servers)
-5. In a production network, how would you detect these failures? (Monitoring, alerting, health probes)
-6. Netflix uses Chaos Monkey to randomly kill servers in production. Why would a company intentionally break their own systems?
 
 ---
 
