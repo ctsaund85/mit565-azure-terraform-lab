@@ -129,6 +129,11 @@ module "network_branch2" {
   vpn_gateway_enabled = var.deploy_vpn # Phase 7
   bgp_asn             = 65020
   tags                = var.tags
+
+  # Serialize VPN gateway creation: Branch 2 waits for Branch 1's gateway
+  # to finish provisioning before starting its own. Prevents Azure parallel
+  # provisioning failures that leave gateways in "Failed" state.
+  vpn_gateway_depends_on_id = module.network_branch1.vpn_gateway_id
 }
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -266,12 +271,11 @@ module "dns" {
     "hub-branch2"   = module.network_branch2.hub_vnet_id
   }
 
-  # Manual A records (like DNS zone file entries)
+  # Manual A records for servers with static IPs (like DNS zone file entries)
+  # Client VMs use dynamic IPs and auto-register via registration_enabled = true
   dns_records = {
-    "dns-server"     = "10.10.2.10"
-    "web-server"     = "10.10.2.20"
-    "branch1-client" = "10.10.0.10"
-    "branch2-client" = "10.20.0.10"
+    "dns-server"  = "10.10.2.10"
+    "web-server"  = "10.10.2.20"
   }
 
   tags = var.tags

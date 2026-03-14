@@ -48,6 +48,12 @@ variable "vpn_gateway_enabled" {
   default = false
 }
 
+variable "vpn_gateway_depends_on_id" {
+  description = "Optional VPN gateway ID to depend on (serializes gateway creation to prevent Azure failures)"
+  type        = string
+  default     = null
+}
+
 variable "bgp_asn" {
   description = "BGP ASN for the VPN Gateway (must be unique per gateway for BGP peering)"
   type        = number

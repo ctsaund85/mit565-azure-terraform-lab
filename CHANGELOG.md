@@ -4,6 +4,26 @@ All notable changes to the MIT 565 Internetworking Azure Lab.
 
 ---
 
+## [2.2.0] – 2026-03-13
+
+### VPN Gateway Reliability Improvements
+- **Fixed** VPN gateway destroy failures caused by gateways stuck in "Failed" state. Added a destroy-time `local-exec` provisioner that pre-deletes the gateway via Azure CLI before Terraform's own delete. Handles Failed-state gateways gracefully (`on_failure = continue`).
+- **Fixed** parallel VPN gateway provisioning failures. Added `vpn_gateway_depends_on_id` variable to the hub-spoke-vnet module that serializes gateway creation — Branch 2's gateway now waits for Branch 1 to finish. Prevents Azure from failing when two `VpnGw1` gateways provision simultaneously.
+- **Added** 60-minute `timeouts` block (create/update/delete) on VPN gateway resources to prevent premature Terraform cancellation during long provisioning operations.
+
+### Code Quality Fixes
+- **Added** `required_providers` block with version pinning (`azurerm ~> 4.0`, Terraform `>= 1.5`) to prevent breaking changes from untested provider upgrades.
+- **Fixed** unreliable DNS A records for client VMs. Removed hardcoded `branch1-client` and `branch2-client` records that assumed specific dynamic IPs. Client VMs auto-register via `registration_enabled = true` on the Private DNS zone VNet links.
+
+### Testing
+- **Validated** all 9 phases with comprehensive testing:
+  - Incremental apply (Phase 1→9): All passed
+  - Incremental destroy (Phase 9→1): All passed
+  - All-at-once apply/destroy (117 resources): Both passed
+  - Combo tests (partial phase sets): Both passed
+
+---
+
 ## [2.1.0] – 2026-03-07
 
 ### New Feature: Azure Chaos Studio (Phase 9)

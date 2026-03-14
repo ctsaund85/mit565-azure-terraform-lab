@@ -212,6 +212,19 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
   bgp_enabled         = true
   tags                = var.tags
 
+  # Serialize VPN gateway creation — Azure fails when two gateways
+  # are provisioned simultaneously in the same subscription.
+  # The tautology below is intentional: referencing the variable forces
+  # Terraform to evaluate it, creating an implicit dependency on the
+  # other gateway's completion without using depends_on (which would
+  # force unnecessary recreation on changes).
+  lifecycle {
+    precondition {
+      condition     = var.vpn_gateway_depends_on_id != null || var.vpn_gateway_depends_on_id == null
+      error_message = "Waiting for dependency gateway to finish provisioning."
+    }
+  }
+
   bgp_settings {
     asn = var.bgp_asn
   }
@@ -221,5 +234,25 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
     public_ip_address_id          = azurerm_public_ip.vpn_gateway[0].id
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.gateway.id
+  }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+  }
+
+  # Pre-delete the VPN gateway via Azure CLI before Terraform's own delete.
+  # This handles gateways stuck in "Failed" state which block PIP/subnet deletion.
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      echo "Pre-deleting VPN gateway ${self.name} via Azure CLI for clean destroy..."
+      az network vnet-gateway delete \
+        --name "${self.name}" \
+        --resource-group "${self.resource_group_name}" 2>/dev/null || true
+      echo "VPN gateway ${self.name} pre-deletion complete"
+    EOT
+    on_failure = continue
   }
 }
